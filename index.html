@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dailies</title>
+  <meta name="description" content="Your own list of daily puzzle games, with streaks and recommendations.">
+  <meta name="theme-color" content="#f6f1e9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16141a" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f6f1e9; --surface: #fffdf9; --surface2: #efe8dc; --ink: #221e1a; --muted: #6b635a; --line: #e2d9cb;
+      --accent: #c2410c; --accent-ink: #fff; --ok: #15803d;
+      --c-logic: #7c3aed; --c-words: #0369a1; --c-numbers: #b45309; --c-colour: #db2777; --c-world: #0f766e;
+      --shadow: 0 1px 2px rgba(60,40,20,.06), 0 4px 14px rgba(60,40,20,.06);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+      --bg: #16141a; --surface: #211e26; --surface2: #2b2731; --ink: #f2ede6; --muted: #a59d93; --line: #37323d;
+      --accent: #fb923c; --accent-ink: #1b1209; --ok: #4ade80;
+      --c-logic: #a78bfa; --c-words: #38bdf8; --c-numbers: #fbbf24; --c-colour: #f472b6; --c-world: #2dd4bf;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+      color-scheme: dark;
+    } }
+    :root[data-theme="dark"] {
+      --bg: #16141a; --surface: #211e26; --surface2: #2b2731; --ink: #f2ede6; --muted: #a59d93; --line: #37323d;
+      --accent: #fb923c; --accent-ink: #1b1209; --ok: #4ade80;
+      --c-logic: #a78bfa; --c-words: #38bdf8; --c-numbers: #fbbf24; --c-colour: #f472b6; --c-world: #2dd4bf;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 Inter, system-ui, sans-serif; min-height: 100svh; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    a { color: inherit; }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 18px 16px calc(96px + env(safe-area-inset-bottom)); }
+    header h1 { font: 700 30px/1.1 Fraunces, Georgia, serif; margin: 6px 0 2px; letter-spacing: -.01em; }
+    header h1 span { color: var(--accent); }
+    .muted { color: var(--muted); font-size: 14px; }
+    h2 { font: 600 20px/1.2 Fraunces, Georgia, serif; margin: 26px 0 6px; }
+    .intro { color: var(--muted); margin: 0 0 14px; font-size: 15px; }
+
+    #summary { display: flex; align-items: center; gap: 14px; margin: 18px 0 8px; }
+    #summary:empty { display: none; }
+    .ring { --p: 0; width: 62px; height: 62px; border-radius: 50%; flex: none; display: grid; place-items: center;
+      background: conic-gradient(var(--accent) calc(var(--p) * 360deg), var(--surface2) 0); }
+    .ring span { width: 48px; height: 48px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; font-weight: 600; font-size: 18px; }
+    .ring small { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .big { font-weight: 600; font-size: 17px; }
+
+    ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--cat); }
+    .card.today { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 10px; padding: 10px 8px 10px 14px; }
+    .card.today.done { background: var(--surface2); box-shadow: none; }
+    .card.today.done .name { color: var(--muted); }
+    .tick { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--line); background: transparent; cursor: pointer; display: grid; place-items: center; padding: 0; }
+    .tick svg { width: 20px; height: 20px; fill: none; stroke: transparent; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .tick[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); }
+    .tick[aria-pressed="true"] svg { stroke: var(--bg); }
+    .name { font-weight: 600; font-size: 16px; }
+    .by { font-weight: 400; color: var(--muted); font-size: 13px; }
+    .meta { display: flex; align-items: center; gap: 10px; margin-top: 3px; flex-wrap: wrap; }
+    .week { display: inline-flex; gap: 3px; }
+    .week i { width: 8px; height: 8px; border-radius: 2px; background: var(--surface2); border: 1px solid var(--line); }
+    .done .week i { background: var(--bg); }
+    .week i.on { background: var(--cat); border-color: var(--cat); }
+    .streak { font-size: 13px; color: var(--accent); font-weight: 600; }
+    .play { text-decoration: none; background: var(--accent); color: var(--accent-ink); font-weight: 600; padding: 9px 16px; border-radius: 999px; font-size: 15px; }
+    .done .play { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+    .more { background: none; border: 0; font-size: 22px; color: var(--muted); width: 32px; height: 40px; cursor: pointer; border-radius: 8px; }
+
+    .card.browse { padding: 14px 14px 12px 18px; }
+    .card.wild { border-style: dashed; border-color: var(--cat); }
+    .why { font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--cat); margin-bottom: 4px; }
+    .desc { color: var(--muted); font-size: 14px; margin-top: 2px; }
+    .chips { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--surface2); color: var(--muted); }
+    .chip.cat { color: var(--cat); font-weight: 600; }
+    .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .btn { border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: 1px solid var(--line); background: transparent; }
+    .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    .btn.saved { color: var(--ok); border-color: var(--ok); }
+    .btn.nope { color: var(--muted); font-weight: 500; margin-left: auto; border-color: transparent; }
+
+    .empty, #todayEmpty { text-align: center; padding: 30px 16px; color: var(--muted); background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; }
+    #todayEmpty .btn { margin-top: 12px; display: inline-block; }
+
+    #filters, #hiddenList { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 14px; }
+    .fchip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 14px; cursor: pointer; }
+    .fchip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+    form.add { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+    form.add input, form.add select, textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); }
+    form.add .btn { justify-self: start; }
+
+    .tabs { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 4px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+      background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--line); z-index: 5; }
+    .tabs button { flex: 1; max-width: 180px; border: 0; background: none; padding: 10px 6px; border-radius: 12px; font-weight: 600; font-size: 15px; color: var(--muted); cursor: pointer; }
+    .tabs button[aria-current="page"] { background: var(--surface2); color: var(--ink); }
+
+    dialog { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); padding: 18px; width: min(420px, calc(100vw - 32px)); }
+    dialog::backdrop { background: rgba(0,0,0,.4); }
+    dialog h3 { margin: 0 0 12px; font: 600 19px Fraunces, Georgia, serif; }
+    #sheetBody { display: grid; gap: 6px; }
+    #sheetBody button, dialog .btn { text-align: left; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-weight: 500; }
+    #sheetBody button:disabled { opacity: .4; }
+    #sheetBody .danger { color: #dc2626; }
+    dialog .close { margin-top: 10px; width: 100%; text-align: center; }
+    textarea { height: 110px; font-size: 12px; font-family: ui-monospace, monospace; margin: 8px 0; }
+
+    #toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(80px + env(safe-area-inset-bottom)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 9; max-width: calc(100vw - 32px); box-shadow: var(--shadow); }
+    #toast button { background: none; border: 0; color: var(--accent); font-weight: 700; margin-left: 6px; cursor: pointer; }
+    .foot { margin-top: 30px; text-align: center; }
+    .foot button { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 14px; }
+    #warn { background: #fef3c7; color: #78350f; padding: 8px 12px; border-radius: 10px; font-size: 14px; margin-top: 10px; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Dailies<span>.</span></h1>
+      <div class="muted" id="date"></div>
+      <div id="warn" hidden>This browser won't save your list (private mode?). Changes disappear when you close it.</div>
+    </header>
+
+    <section class="view" id="v-today">
+      <div id="summary"></div>
+      <ul id="todayList"></ul>
+      <div id="todayEmpty" hidden>
+        Your list is empty.<br>Pick some games you'd like to play every day.<br>
+        <button class="btn primary" data-tab="foryou">Find games</button>
+      </div>
+      <p class="intro" style="margin-top:14px">Tap <b>Play</b> to open a game (it ticks off automatically), or tap the circle yourself.</p>
+    </section>
+
+    <section class="view" id="v-foryou" hidden>
+      <h2>For you</h2>
+      <p class="intro" id="fyIntro"></p>
+      <ul id="fyList"></ul>
+    </section>
+
+    <section class="view" id="v-all" hidden>
+      <h2>All games</h2>
+      <div id="filters"></div>
+      <ul id="allList"></ul>
+      <div id="hiddenBox" hidden>
+        <h2>Not for me</h2>
+        <p class="intro">Tap to bring one back.</p>
+        <div id="hiddenList"></div>
+      </div>
+      <h2>Add your own</h2>
+      <form class="add" id="addForm">
+        <input id="addName" placeholder="Name, e.g. Ordlet" required maxlength="40">
+        <input id="addUrl" placeholder="Link, e.g. https://…" required inputmode="url">
+        <select id="addCat" aria-label="Kind of game"></select>
+        <button class="btn primary">Add to my list</button>
+      </form>
+    </section>
+
+    <div class="foot"><button data-act="backup">Backup / move to another device</button></div>
+  </div>
+
+  <nav class="tabs">
+    <button data-tab="today">Today</button>
+    <button data-tab="foryou">For you</button>
+    <button data-tab="all">All games</button>
+  </nav>
+
+  <dialog id="sheet"><h3 id="sheetTitle"></h3><div id="sheetBody"></div><button class="btn close" data-act="closesheet">Close</button></dialog>
+  <dialog id="backup">
+    <h3>Backup</h3>
+    <p class="muted">Your list lives only in this browser. Copy this text and paste it on another device to move it.</p>
+    <textarea id="backupText" spellcheck="false"></textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="copyBackup">Copy</button><button class="btn" id="loadBackup">Load pasted backup</button></div>
+    <form method="dialog"><button class="btn close">Close</button></form>
+  </dialog>
+  <div id="toast" hidden role="status"></div>
+
+  <script src="games.js?v=1"></script>
+  <script src="app.js?v=1"></script>
+  <!-- hub-stats visit counter -->
+  <script>(function(){try{var A="dailies",K="hubdev",d=localStorage.getItem(K);if(!d){d=(self.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"."+Math.random().toString(36).slice(2));localStorage.setItem(K,d);}var u="https://hub-stats.mathiasjob.workers.dev/hit",R=(function(){try{var x=document.referrer;if(!x)return"";x=new URL(x);var h=location.host;if(x.host!==h)return x.host;if(/\.github\.io$/.test(h)){var s=x.pathname.split("/")[1]||"",m=location.pathname.split("/")[1]||"";return s===m?"self":h+"/"+s;}return"self";}catch(e){return""}})(),b=JSON.stringify({app:A,d:d,r:R});if(navigator.sendBeacon){navigator.sendBeacon(u,b);}else{fetch(u,{method:"POST",body:b,keepalive:true,mode:"no-cors"});}}catch(e){}})();</script>
+</body>
+</html>
